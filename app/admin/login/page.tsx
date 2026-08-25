@@ -1,101 +1,128 @@
 'use client';
 
 import { useState } from 'react';
-import { loginAdmin } from '@/app/admin/actions';
+import Link from 'next/link';
 
 export default function LoginPage() {
-  const [login, setLogin] = useState('');
-  const [password, setPassword] = useState('');
+  const [isRegistering, setIsRegistering] = useState(false);
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError('');
-    setLoading(true);
+    setIsLoading(true);
 
-    const formData = new FormData();
-    formData.append('login', login);
-    formData.append('password', password);
+    const formData = new FormData(e.currentTarget);
+    const login = formData.get('login');
+    const password = formData.get('password');
+    const fullName = formData.get('fullName');
 
     try {
-      const res = await loginAdmin(formData);
+      const res = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: isRegistering ? 'register' : 'login',
+          login,
+          password,
+          fullName,
+        }),
+      });
 
-      if (res.success) {
-        window.location.href = '/admin';
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        window.location.href = data.redirectTo || '/';
       } else {
-        setError(res.error || 'Неверный логин или пароль');
-        setLoading(false);
+        setError(data.error || 'Произошла ошибка');
+        setIsLoading(false);
       }
     } catch (err) {
       console.error(err);
-      setError('Ошибка при входе');
-      setLoading(false);
+      setError('Ошибка соединения с сервером');
+      setIsLoading(false);
     }
-  };
+  }
 
   return (
-    <div className="bg-slate-950 min-h-screen text-slate-200 flex items-center justify-center p-4 font-sans text-sm">
-      <div className="bg-[#1C2541] border border-slate-800 rounded-2xl w-full max-w-md p-6 space-y-6 shadow-2xl">
-        
-        <div className="text-center space-y-1">
-          <div className="inline-block bg-[#00F5D4]/10 text-[#00F5D4] p-3 rounded-2xl mb-2">
-            ⚙️
-          </div>
-          <h1 className="text-xl font-black text-white">Вход в админ-панель</h1>
-          <p className="text-xs text-slate-400">Портал Aqparat Management</p>
-        </div>
+    <div className="min-h-screen flex items-center justify-center bg-[#0d1117] text-white">
+      <div className="bg-[#161b22] p-8 rounded-xl shadow-xl w-full max-w-md border border-gray-800">
+        <h1 className="text-2xl font-bold text-center mb-2">
+          {isRegistering ? 'Регистрация аккаунта' : 'Вход в систему'}
+        </h1>
+        <p className="text-gray-400 text-center text-sm mb-6">Портал Aqparat Management</p>
 
         {error && (
-          <div className="bg-rose-500/10 border border-rose-500/30 text-rose-400 p-3 rounded-xl text-xs text-center font-medium">
+          <div className="bg-red-500/10 border border-red-500 text-red-400 p-3 rounded-lg mb-4 text-sm text-center">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {isRegistering && (
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Ваше Имя / ФИО</label>
+              <input
+                name="fullName"
+                type="text"
+                required={isRegistering}
+                disabled={isLoading}
+                className="w-full bg-[#0d1117] border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-cyan-400 disabled:opacity-50"
+                placeholder="Иван Иванов"
+              />
+            </div>
+          )}
+
           <div>
-            <label className="text-xs text-slate-400 block mb-1.5 font-medium">
-              Логин
-            </label>
+            <label className="block text-sm text-gray-400 mb-1">Логин</label>
             <input
+              name="login"
               type="text"
               required
-              placeholder="admin"
-              value={login}
-              onChange={(e) => setLogin(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-[#00F5D4] transition-colors text-xs"
+              disabled={isLoading}
+              className="w-full bg-[#0d1117] border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-cyan-400 disabled:opacity-50"
+              placeholder="Введите логин"
             />
           </div>
 
           <div>
-            <label className="text-xs text-slate-400 block mb-1.5 font-medium">
-              Пароль
-            </label>
+            <label className="block text-sm text-gray-400 mb-1">Пароль</label>
             <input
+              name="password"
               type="password"
               required
+              disabled={isLoading}
+              className="w-full bg-[#0d1117] border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-cyan-400 disabled:opacity-50"
               placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-[#00F5D4] transition-colors text-xs"
             />
           </div>
 
           <button
             type="submit"
-            disabled={loading}
-            className="w-full bg-[#00F5D4] text-slate-950 font-bold py-2.5 rounded-xl text-xs hover:bg-[#00F5D4]/90 transition-all cursor-pointer disabled:opacity-50"
+            disabled={isLoading}
+            className="w-full bg-cyan-400 hover:bg-cyan-500 text-black font-semibold py-2.5 rounded-lg transition-all flex items-center justify-center disabled:opacity-50"
           >
-            {loading ? 'Проверка...' : 'Войти в панель'}
+            {isLoading ? 'Загрузка...' : (isRegistering ? 'Зарегистрироваться' : 'Войти')}
           </button>
         </form>
 
-        <div className="text-center pt-2">
-          <a href="/" className="text-xs text-slate-500 hover:text-slate-300 transition-colors">
+        <div className="mt-6 flex flex-col items-center gap-2 text-sm">
+          <button
+            type="button"
+            disabled={isLoading}
+            onClick={() => {
+              setIsRegistering(!isRegistering);
+              setError('');
+            }}
+            className="text-cyan-400 hover:underline"
+          >
+            {isRegistering ? 'Уже есть аккаунт? Войти' : 'Нет аккаунта? Зарегистрироваться'}
+          </button>
+          <Link href="/" className="text-gray-400 hover:text-white">
             ← Вернуться на главную
-          </a>
+          </Link>
         </div>
-
       </div>
     </div>
   );

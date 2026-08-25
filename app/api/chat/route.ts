@@ -9,41 +9,67 @@ export async function POST(req: Request) {
     }
 
     const text = message.toLowerCase().trim();
-    let reply = '';
 
-    // Разбор комбинации "привет как дела"
-    if ((text.includes('привет') || text.includes('сәлем') || text.includes('салам')) && 
-        (text.includes('как дела') || text.includes('калайсың') || text.includes('қалайсың') || text.includes('как ты'))) {
-      reply = 'Сәлем! Жағдайым өте жақсы, рақмет! Сізде қалай? / Привет! У меня всё отлично, спасибо! Как ваши дела?';
-    } 
-    // Отдельно: "как дела"
-    else if (text.includes('как дела') || text.includes('калайсың') || text.includes('қалайсың') || text.includes('как ты') || text.includes('не жаңалық')) {
-      reply = 'Барлығы тамаша, рақмет! Жаңалықтарды бақылап отырмын. Сізде қалай? / Всё отлично, спасибо! Слежу за последними новостями. Как вы?';
+    // Быстрый ответ про автора
+    if (text.includes('автор') || text.includes('создатель') || text.includes('разработчик') || text.includes('кто сделал') || text.includes('ким жасады')) {
+      return NextResponse.json({
+        reply: 'Бұл порталды Torivideft әзірлеген. / Этот портал был разработан Torivideft.'
+      });
     }
-    // Отдельно: "привет"
-    else if (text.includes('привет') || text.includes('салам') || text.includes('сәлем') || text.includes('здравствуй')) {
-      reply = 'Сәлеметсіз бе! Мен AQPARAT AI ассистентімін. Сізге қалай көмектесе аламын? / Здравствуйте! Я ИИ-ассистент AQPARAT. Чем могу помочь?';
-    } 
-    // Кто ты
-    else if (text.includes('кто ты') || text.includes('кімсің') || text.includes('кимсин') || text.includes('что ты')) {
-      reply = 'Мен AQPARAT.COM порталының виртуалды ИИ-көмекшісімін. / Я виртуальный ИИ-помощник новостного портала AQPARAT.COM.';
+
+    const apiKey = process.env.GEMINI_API_KEY;
+
+    if (!apiKey) {
+      return NextResponse.json({
+        reply: 'Қате: `.env` файлында GEMINI_API_KEY орнатылмаған.'
+      });
     }
-    // Новости
-    else if (text.includes('новост') || text.includes('жаңалық') || text.includes('жаналык') || text.includes('что нового')) {
-      reply = 'Барлық өзекті жаңалықтар басты бетте орналасқан. Сонымен қатар жоғарғы іздеу жолағын қолдана аласыз! / Все актуальные новости отображаются на главной странице. Также вы можете воспользоваться поиском вверху!';
+
+    const systemPrompt = `
+Ты — умный, вежливый и продвинутый ИИ-ассистент новостного портала AQPARAT.COM.
+Сайт и портал разработал Torivideft.
+
+Правила ответа:
+1. Отвечай на любые вопросы пользователя (новости, наука, технологии, общие знания, помощь и т.д.).
+2. Отвечай строго на том языке, на котором обратился пользователь (Казахский, Русский или Английский).
+3. Будь вежливым, пиши четко и по делу, без лишней воды.
+    `;
+
+    // Актуальный адрес для модели gemini-3.6-flash
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              role: 'user',
+              parts: [{ text: `${systemPrompt}\n\nПользователь спрашивает: ${message}` }],
+            },
+          ],
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error('Gemini API Error:', data);
+      return NextResponse.json({
+        reply: `Қате орын алды: ${data.error?.message || 'API error'}`
+      });
     }
-    // Разработчик
-    else if (text.includes('автор') || text.includes('создатель') || text.includes('разработчик') || text.includes('кто сделал')) {
-      reply = 'Бұл порталды Torivideft әзірлеген. / Этот портал разработан Torivideft.';
-    }
-    // Любые другие вопросы
-    else {
-      reply = `Сұрағыңызға рақмет! Мен AQPARAT AI ретінде әлі де үйреніп жатырмын. Порталдағы іздеу жолағы арқылы да қажетті ақпаратты таба аласыз. / Спасибо за вопрос! Я как ИИ-помощник еще обучусь, но вы всегда можете воспользоваться поиском по сайту.`;
-    }
+
+    const reply =
+      data.candidates?.[0]?.content?.parts?.[0]?.text ||
+      'Кешіріңіз, жауап дайындау мүмкін болмады.';
 
     return NextResponse.json({ reply });
   } catch (error) {
-    console.error('AI Error:', error);
+    console.error('AI Route Error:', error);
     return NextResponse.json({ error: 'Ошибка ИИ сервиса' }, { status: 500 });
   }
 }
