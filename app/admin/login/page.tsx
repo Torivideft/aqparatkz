@@ -1,58 +1,101 @@
-// app/admin/login/page.tsx
 'use client';
 
 import { useState } from 'react';
-import { loginAdmin } from '../actions';
+import { loginAdmin } from '@/app/admin/actions';
 
-export default function AdminLoginPage() {
-  const [error, setError] = useState<string | null>(null);
+export default function LoginPage() {
+  const [login, setLogin] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  async function handleSubmit(formData: FormData) {
-    setError(null);
-    const res = await loginAdmin(formData);
-    if (res?.error) {
-      setError(res.error);
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    const formData = new FormData();
+    formData.append('login', login);
+    formData.append('password', password);
+
+    try {
+      const res = await loginAdmin(formData);
+
+      if (res.success) {
+        window.location.href = '/admin';
+      } else {
+        setError(res.error || 'Неверный логин или пароль');
+        setLoading(false);
+      }
+    } catch (err) {
+      console.error(err);
+      setError('Ошибка при входе');
+      setLoading(false);
     }
-  }
+  };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 font-sans">
-      <div className="bg-[#1C2541] border border-slate-800 rounded-2xl p-8 w-full max-w-md shadow-2xl">
-        <div className="text-center mb-6">
-          <h1 className="text-2xl font-black text-white uppercase tracking-wider">
-            AQPARAT<span className="text-[#00F5D4]">.ADMIN</span>
-          </h1>
-          <p className="text-xs text-slate-400 mt-1">Панель управления новостным порталом</p>
+    <div className="bg-slate-950 min-h-screen text-slate-200 flex items-center justify-center p-4 font-sans text-sm">
+      <div className="bg-[#1C2541] border border-slate-800 rounded-2xl w-full max-w-md p-6 space-y-6 shadow-2xl">
+        
+        <div className="text-center space-y-1">
+          <div className="inline-block bg-[#00F5D4]/10 text-[#00F5D4] p-3 rounded-2xl mb-2">
+            ⚙️
+          </div>
+          <h1 className="text-xl font-black text-white">Вход в админ-панель</h1>
+          <p className="text-xs text-slate-400">Портал Aqparat Management</p>
         </div>
 
         {error && (
-          <div className="bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs p-3 rounded-xl mb-4 text-center font-medium">
+          <div className="bg-rose-500/10 border border-rose-500/30 text-rose-400 p-3 rounded-xl text-xs text-center font-medium">
             {error}
           </div>
         )}
 
-        <form action={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs text-slate-400 mb-1">Пароль администратора</label>
+            <label className="text-xs text-slate-400 block mb-1.5 font-medium">
+              Логин
+            </label>
+            <input
+              type="text"
+              required
+              placeholder="admin"
+              value={login}
+              onChange={(e) => setLogin(e.target.value)}
+              className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-[#00F5D4] transition-colors text-xs"
+            />
+          </div>
+
+          <div>
+            <label className="text-xs text-slate-400 block mb-1.5 font-medium">
+              Пароль
+            </label>
             <input
               type="password"
-              name="password"
               required
               placeholder="••••••••"
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#00F5D4]"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-[#00F5D4] transition-colors text-xs"
             />
-            <p className="text-[10px] text-slate-500 mt-1">
-              Тестовый пароль: <code className="text-cyan-400">admin123</code>
-            </p>
           </div>
 
           <button
             type="submit"
-            className="w-full bg-[#00F5D4] text-slate-950 font-bold py-2.5 rounded-xl hover:bg-cyan-300 transition-colors shadow-lg shadow-cyan-500/20 text-sm mt-2"
+            disabled={loading}
+            className="w-full bg-[#00F5D4] text-slate-950 font-bold py-2.5 rounded-xl text-xs hover:bg-[#00F5D4]/90 transition-all cursor-pointer disabled:opacity-50"
           >
-            Войти в систему
+            {loading ? 'Проверка...' : 'Войти в панель'}
           </button>
         </form>
+
+        <div className="text-center pt-2">
+          <a href="/" className="text-xs text-slate-500 hover:text-slate-300 transition-colors">
+            ← Вернуться на главную
+          </a>
+        </div>
+
       </div>
     </div>
   );

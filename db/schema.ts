@@ -1,27 +1,29 @@
-// db/schema.ts
-import { pgTable, text, boolean, integer, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { pgTable, serial, text, boolean, integer, varchar, timestamp } from 'drizzle-orm/pg-core';
 
-// Таблица статей
 export const articles = pgTable('articles', {
-  id: uuid('id').defaultRandom().primaryKey(),
+  id: serial('id').primaryKey(),
   title: text('title').notNull(),
-  category: text('category').notNull(),
-  content: text('content').notNull(),
+  description: text('description').notNull(),
   imageUrl: text('image_url'),
-  isBreaking: boolean('is_breaking').default(false).notNull(),
-  views: integer('views').default(0).notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
+  isImportant: boolean('is_important').default(false),
 });
 
-// Таблица комментариев
 export const comments = pgTable('comments', {
-  id: uuid('id').defaultRandom().primaryKey(),
+  id: serial('id').primaryKey(),
   author: text('author').notNull(),
   text: text('text').notNull(),
-  articleId: uuid('article_id').references(() => articles.id, { onDelete: 'cascade' }).notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
+  articleId: integer('article_id').references(() => articles.id, { onDelete: 'cascade' }),
 });
 
-// Типы для TypeScript
+// Добавляем таблицу users в соответствие с базой Neon
+export const users = pgTable('users', {
+  id: serial('id').primaryKey(),
+  username: varchar('username', { length: 50 }).notNull(),
+  passwordHash: text('password_hash').notNull(),
+  role: varchar('role', { length: 20 }).notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
 export type Article = typeof articles.$inferSelect;
 export type NewArticle = typeof articles.$inferInsert;
+export type User = typeof users.$inferSelect;
