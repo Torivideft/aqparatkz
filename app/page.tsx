@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { getArticlesPaginated, getCurrentUser, getCommentsByArticle, addCommentAction, deleteComment } from './admin/actions';
 
-export const dynamic = 'force-dynamic';
 export interface Article {
   id: number;
   title: string;
