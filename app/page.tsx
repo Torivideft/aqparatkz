@@ -21,7 +21,6 @@ export default function Home() {
   const currentPage = Number(searchParams.get('page')) || 1;
   const pageSize = 6;
 
-  // Исправлен тип user, чтобы fullName допускал null из базы данных
   const [user, setUser] = useState<{ id: number; username: string; role: string; fullName?: string | null } | null>(null);
   const [lang, setLang] = useState<'kk' | 'ru' | 'en'>('kk');
   const [searchQuery, setSearchQuery] = useState('');
@@ -103,8 +102,12 @@ export default function Home() {
   useEffect(() => {
     async function loadComments() {
       if (mainArticle?.id) {
-        const data = await getCommentsByArticle(mainArticle.id);
-        setComments(data);
+        try {
+          const data = await getCommentsByArticle(mainArticle.id);
+          setComments(data);
+        } catch (e) {
+          console.error('Ошибка загрузки комментариев:', e);
+        }
       }
     }
     loadComments();
