@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { getArticlesPaginated, getCurrentUser, getCommentsByArticle, addCommentAction, deleteComment } from './admin/actions';
 
@@ -15,7 +15,7 @@ export interface Article {
   created_at?: string | Date | null;
 }
 
-export default function Home() {
+function HomeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const currentPage = Number(searchParams.get('page')) || 1;
@@ -661,5 +661,13 @@ export default function Home() {
         <p>© 2026 Aqparat.com. Все права защищены.<br />Powered and Designed by Torivideft.</p>
       </footer>
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<div className="bg-slate-950 text-white min-h-screen flex items-center justify-center">Жүктелуде...</div>}>
+      <HomeContent />
+    </Suspense>
   );
 }
