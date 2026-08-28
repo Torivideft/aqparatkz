@@ -8,15 +8,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Сообщение не может быть пустым' }, { status: 400 });
     }
 
-    const text = message.toLowerCase().trim();
-
-    // Быстрый ответ про автора
-    if (text.includes('автор') || text.includes('создатель') || text.includes('разработчик') || text.includes('кто сделал') || text.includes('ким жасады')) {
-      return NextResponse.json({
-        reply: 'Бұл порталды Torivideft әзірлеген. / Этот портал был разработан Torivideft.'
-      });
-    }
-
     const apiKey = process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
@@ -25,19 +16,9 @@ export async function POST(req: Request) {
       });
     }
 
-    const systemPrompt = `
-Ты — умный, вежливый и продвинутый ИИ-ассистент новостного портала AQPARAT.COM.
-Сайт и портал разработал Torivideft.
-
-Правила ответа:
-1. Отвечай на любые вопросы пользователя (новости, наука, технологии, общие знания, помощь и т.д.).
-2. Отвечай строго на том языке, на котором обратился пользователь (Казахский, Русский или Английский).
-3. Будь вежливым, пиши четко и по делу, без лишней воды.
-    `;
-
-    // Актуальный адрес для модели gemini-3.6-flash
+    // Прямой запрос через REST API Google — принимает любые ключи (и AIza, и AQ)
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: {
@@ -46,10 +27,13 @@ export async function POST(req: Request) {
         body: JSON.stringify({
           contents: [
             {
-              role: 'user',
-              parts: [{ text: `${systemPrompt}\n\nПользователь спрашивает: ${message}` }],
-            },
-          ],
+              parts: [
+                {
+                  text: `Ты — умный, вежливый и продвинутый ИИ-ассистент новостного портала AQPARAT.COM. Сайт разработан Torivideft. Отвечай строго на языке пользователя (каз/рус/англ).\n\nВопрос: ${message}`
+                }
+              ]
+            }
+          ]
         }),
       }
     );
@@ -57,15 +41,13 @@ export async function POST(req: Request) {
     const data = await response.json();
 
     if (!response.ok) {
-      console.error('Gemini API Error:', data);
-      return NextResponse.json({
-        reply: `Қате орын алды: ${data.error?.message || 'API error'}`
-      });
+      console.error('Google API Error:', data);
+      return NextResponse.json({ 
+        reply: `Қате орын алды: ${data.error?.message || 'Google API қатесі'}` 
+      }, { status: 200 });
     }
 
-    const reply =
-      data.candidates?.[0]?.content?.parts?.[0]?.text ||
-      'Кешіріңіз, жауап дайындау мүмкін болмады.';
+    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Кешіріңіз, жауап дайындау мүмкін болмады.';
 
     return NextResponse.json({ reply });
   } catch (error) {
