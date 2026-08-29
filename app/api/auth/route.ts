@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { db } from '@/db';
 import { users } from '@/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
+import bcrypt from 'bcrypt';
 
 export async function POST(request: Request) {
   try {
@@ -25,11 +26,14 @@ export async function POST(request: Request) {
         return NextResponse.json({ success: false, error: 'Такой логин уже занят!' }, { status: 400 });
       }
 
-      // 2. Создаем нового пользователя строго по твоей схеме
+      // Хэшируем пароль при регистрации
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      // 2. Создаем нового пользователя
       console.log('Создаем пользователя в Neon DB...');
       const [newUser] = await db.insert(users).values({
         username: login,
-        passwordHash: password, // совпадает с passwordHash в schema.ts
+        passwordHash: hashedPassword,
         fullName: fullName || login,
         role: 'user', // Обычный пользователь
       }).returning();
@@ -45,26 +49,32 @@ export async function POST(request: Request) {
         path: '/',
       });
 
-      // Регистрация всегда отправляет на главную
       return NextResponse.json({ success: true, redirectTo: '/' });
     } 
     
     if (action === 'login') {
-      // Ищем юзера в базе
+      // Ищем юзера ТОЛЬКО по логину
       const foundUsers = await db
         .select()
         .from(users)
-        .where(
-          and(
-            eq(users.username, login),
-            eq(users.passwordHash, password)
-          )
-        )
+        .where(eq(users.username, login))
         .limit(1);
 
       const user = foundUsers[0];
 
       if (!user) {
+        return NextResponse.json({ success: false, error: 'Неверный логин или пароль!' }, { status: 400 });
+      }
+
+      // Проверяем пароль (поддерживаем как хэш через bcrypt, так и старый plain-текст на всякий случай)
+      let isPasswordValid = false;
+      if (user.passwordHash.startsWith('$2b$') || user.passwordHash.startsWith('$2a$')) {
+        isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+      } else {
+        isPasswordValid = user.passwordHash === password;
+      }
+
+      if (!isPasswordValid) {
         return NextResponse.json({ success: false, error: 'Неверный логин или пароль!' }, { status: 400 });
       }
 
