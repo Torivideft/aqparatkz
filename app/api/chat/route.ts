@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic'; // Отключает кэширование роута на Vercel
+
 export async function POST(req: Request) {
   try {
     const { message } = await req.json();
@@ -16,7 +18,7 @@ export async function POST(req: Request) {
       });
     }
 
-    // Обновлено на актуальную версию модели gemini-2.5-flash
+    // Используем актуальную модель gemini-2.5-flash
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
       {
