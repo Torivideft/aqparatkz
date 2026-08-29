@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { db } from '@/db';
 import { users } from '@/db/schema';
-import { eq } from 'drizzle-orm';
 import bcrypt from 'bcrypt';
 
 export async function POST(request: Request) {
@@ -17,8 +16,10 @@ export async function POST(request: Request) {
     const cookieStore = await cookies();
 
     if (action === 'register') {
-      const existing = await db.select().from(users).where(eq(users.username, login)).limit(1);
-      if (existing.length > 0) {
+      const allUsers = await db.select().from(users);
+      const existing = allUsers.find(u => u.username === login);
+      
+      if (existing) {
         return NextResponse.json({ success: false, error: 'Такой логин уже занят!' }, { status: 400 });
       }
 
@@ -42,19 +43,17 @@ export async function POST(request: Request) {
     } 
     
     if (action === 'login') {
-      // Ищем пользователя через Drizzle по точному совпадению имени
-      const foundUsers = await db.select().from(users);
-      const user = foundUsers.find((u) => u.username === login);
+      const allUsers = await db.select().from(users);
+      const user = allUsers.find(u => u.username === login);
 
       if (!user) {
-        return NextResponse.json({ success: false, error: 'Пользователь не найден!' }, { status: 400 });
+        return NextResponse.json({ success: false, error: 'Неверный логин или пароль!' }, { status: 400 });
       }
 
-      // Проверяем пароль (поддерживаем и открытый текст из базы, и хэш)
       const isValid = user.passwordHash === password || await bcrypt.compare(password, user.passwordHash).catch(() => false);
 
       if (!isValid) {
-        return NextResponse.json({ success: false, error: 'Неверный пароль!' }, { status: 400 });
+        return NextResponse.json({ success: false, error: 'Неверный логин или пароль!' }, { status: 400 });
       }
 
       cookieStore.set('admin_session', String(user.id), {
