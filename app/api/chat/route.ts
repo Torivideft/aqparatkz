@@ -16,9 +16,9 @@ export async function POST(req: Request) {
       });
     }
 
-    // Прямой запрос через REST API Google — принимает любые ключи (и AIza, и AQ)
+    // Обновлено на актуальную версию модели gemini-2.5-flash
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: {
