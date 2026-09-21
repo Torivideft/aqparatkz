@@ -657,7 +657,7 @@ function HomeContent() {
       <footer className="bg-slate-950 text-slate-500 text-xs py-6 border-t border-slate-900 text-center space-y-3">
         <div className="flex justify-center items-center space-x-6">
           <a 
-            href="https://www.instagram.com/akberdiyev_aktore" 
+            href="https://www.instagram.com/aqparat.com.kz?stkn=ODMxMjR5MThqOXRq" 
             target="_blank" 
             rel="noopener noreferrer" 
             className="hover:text-pink-500 transition-colors flex items-center gap-2 text-slate-300"
@@ -669,7 +669,7 @@ function HomeContent() {
           </a>
 
           <a 
-            href="https://t.me/твой_канал" 
+            href="https://t.me/aqparat_com" 
             target="_blank" 
             rel="noopener noreferrer" 
             className="hover:text-blue-400 transition-colors flex items-center gap-2 text-slate-300"
@@ -681,7 +681,7 @@ function HomeContent() {
           </a>
         </div>
 
-        <p>© 2026 Aqparat.com. Все права защищены.<br />Powered and Designed by Torivideft.</p>
+        <p>© 2026 Aqparat.com. Все права защищены.<br />Powered and Designed by Torivideft</p>
       </footer>
     </div>
   );
@@ -689,7 +689,7 @@ function HomeContent() {
 
 export default function Home() {
   return (
-    <Suspense fallback={<div className="bg-slate-950 text-white min-h-screen flex items-center justify-center">Жүктелуде...</div>}>
+    <Suspense fallback={<div className="bg-slate-950 min-h-screen text-white flex items-center justify-center">Жүктелуде...</div>}>
       <HomeContent />
     </Suspense>
   );
