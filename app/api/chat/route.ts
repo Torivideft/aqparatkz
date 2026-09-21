@@ -17,10 +17,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ reply: 'Ошибка: API ключ не задан в переменных окружения Vercel.' });
     }
 
-    console.log('API Key length:', apiKey.length, 'Starts with:', apiKey.substring(0, 4));
-
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey.trim()}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey.trim()}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
