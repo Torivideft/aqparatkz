@@ -681,7 +681,7 @@ function HomeContent() {
           </a>
 
           <a 
-            href="https://www.youtube.com" 
+            href="https://youtube.com/@aqparatcomkz?si=Nkhz0ScW09g5qjd4" 
             target="_blank" 
             rel="noopener noreferrer" 
             className="hover:text-rose-500 transition-colors flex items-center gap-2 text-slate-300"
