@@ -2,30 +2,6 @@ import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
-async function callGemini(apiKey: string, model: string, message: string) {
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              {
-                text: `Ты — умный, вежливый и продвинутый ИИ-ассистент новостного портала AQPARAT.COM. Сайт разработан разработчиком Torivideft. Отвечай строго на языке пользователя (каз/рус/англ).\n\nВопрос: ${message}`
-              }
-            ]
-          }
-        ]
-      }),
-    }
-  );
-  
-  const data = await response.json();
-  return { response, data };
-}
-
 export async function POST(req: Request) {
   try {
     const { message } = await req.json();
@@ -37,34 +13,40 @@ export async function POST(req: Request) {
     const apiKey = process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
-      console.error('GEMINI_API_KEY is missing in environment variables');
-      return NextResponse.json({
-        reply: 'Қате: `.env` файлында GEMINI_API_KEY орнатылмаған.'
-      });
+      return NextResponse.json({ reply: 'API ключ не настроен.' });
     }
 
-    // Исправлено: используем реальные рабочие модели Google Gemini
-    const modelsToTry = ['gemini-1.5-flash', 'gemini-1.5-pro'];
-    let reply = '';
-
-    for (const model of modelsToTry) {
-      const { response, data } = await callGemini(apiKey, model, message);
-      
-      if (response.ok && data.candidates?.[0]?.content?.parts?.[0]?.text) {
-        reply = data.candidates[0].content.parts[0].text;
-        break;
-      } else {
-        console.warn(`Model ${model} failed:`, JSON.stringify(data));
+    // Запрос к модели gemini-1.5-flash с поддержкой ключей через параметр key=
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: `Ты — ИИ-ассистент новостного портала AQPARAT.COM, разработанного Torivideft. Отвечай на языке вопроса.\n\nВопрос: ${message}`
+                }
+              ]
+            }
+          ]
+        }),
       }
-    }
+    );
+
+    const data = await response.json();
+    const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (!reply) {
-      reply = 'Кешіріңіз, қазір ИИ серверлері шамадан тыс жүктелген. Бірнеше минуттан кейін қайталап көріңіз.';
+      console.error('Gemini Error:', JSON.stringify(data));
+      return NextResponse.json({ reply: 'Ошибка ответа от ИИ. Проверьте ключ.' });
     }
 
     return NextResponse.json({ reply });
   } catch (error) {
-    console.error('AI Route Error:', error);
-    return NextResponse.json({ error: 'Ошибка ИИ сервиса' }, { status: 500 });
+    console.error('Critical Error:', error);
+    return NextResponse.json({ error: 'Ошибка сервера' }, { status: 500 });
   }
 }
