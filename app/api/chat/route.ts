@@ -13,11 +13,14 @@ export async function POST(req: Request) {
     const apiKey = process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
-      return NextResponse.json({ reply: 'API ключ не найден в переменных окружения.' });
+      console.error('CRITICAL: GEMINI_API_KEY is missing on Vercel!');
+      return NextResponse.json({ reply: 'Ошибка: API ключ не задан в переменных окружения Vercel.' });
     }
 
+    console.log('API Key length:', apiKey.length, 'Starts with:', apiKey.substring(0, 4));
+
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey.trim()}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -36,16 +39,24 @@ export async function POST(req: Request) {
     );
 
     const data = await response.json();
+    
+    if (!response.ok) {
+      console.error('Google API Error Response:', JSON.stringify(data));
+      return NextResponse.json({ 
+        reply: `Ошибка Google API (${response.status}): ${data?.error?.message || 'Проверьте ключ'}` 
+      });
+    }
+
     const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (!reply) {
-      console.error('Gemini API Full Response:', JSON.stringify(data));
-      return NextResponse.json({ reply: 'Ошибка ответа от Google API. Проверьте валидность ключа.' });
+      console.error('Empty candidates in response:', JSON.stringify(data));
+      return NextResponse.json({ reply: 'Пустой ответ от модели ИИ.' });
     }
 
     return NextResponse.json({ reply });
   } catch (error) {
-    console.error('API Chat Error:', error);
+    console.error('Server Catch Error:', error);
     return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 });
   }
 }
