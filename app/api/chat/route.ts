@@ -2,6 +2,29 @@ import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
+async function callGemini(apiKey: string, model: string, message: string) {
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              {
+                // Исправлено: теперь ИИ знает, что автор ты один
+                text: `Ты — умный, вежливый и продвинутый ИИ-ассистент новостного портала AQPARAT.COM. Сайт разработан разработчиком Torivideft. Отвечай строго на языке пользователя (каз/рус/англ).\n\nВопрос: ${message}`
+              }
+            ]
+          }
+        ]
+      }),
+    }
+  );
+  return { response, data: await response.json() };
+}
+
 export async function POST(req: Request) {
   try {
     const { message } = await req.json();
@@ -18,38 +41,21 @@ export async function POST(req: Request) {
       });
     }
 
-    // Используем проверенную модель gemini-3.6-flash
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                {
-                  text: `Ты — умный, вежливый и продвинутый ИИ-ассистент новостного портала AQPARAT.COM. Сайт разработан Torivideft. Отвечай строго на языке пользователя (каз/рус/англ).\n\nВопрос: ${message}`
-                }
-              ]
-            }
-          ]
-        }),
+    const modelsToTry = ['gemini-3.6-flash', 'gemini-2.5-flash', 'gemini-1.5-flash'];
+    let reply = '';
+
+    for (const model of modelsToTry) {
+      const { response, data } = await callGemini(apiKey, model, message);
+      
+      if (response.ok && data.candidates?.[0]?.content?.parts?.[0]?.text) {
+        reply = data.candidates[0].content.parts[0].text;
+        break;
       }
-    );
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error('Google API Error:', data);
-      return NextResponse.json({ 
-        reply: `Қате орын алды: ${data.error?.message || 'Google API қатесі'}` 
-      }, { status: 200 });
     }
 
-    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Кешіріңіз, жауап дайындау мүмкін болмады.';
+    if (!reply) {
+      reply = 'Кешіріңіз, қазір ИИ серверлері шамадан тыс жүктелген. Бірнеше минуттан кейін қайталап көріңіз.';
+    }
 
     return NextResponse.json({ reply });
   } catch (error) {
