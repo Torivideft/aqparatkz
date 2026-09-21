@@ -7,16 +7,15 @@ export async function POST(req: Request) {
     const { message } = await req.json();
 
     if (!message || typeof message !== 'string') {
-      return NextResponse.json({ error: 'Сообщение не может быть пустым' }, { status: 400 });
+      return NextResponse.json({ error: 'Пустое сообщение' }, { status: 400 });
     }
 
     const apiKey = process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
-      return NextResponse.json({ reply: 'API ключ не настроен.' });
+      return NextResponse.json({ reply: 'API ключ не найден в переменных окружения.' });
     }
 
-    // Запрос к модели gemini-1.5-flash с поддержкой ключей через параметр key=
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
       {
@@ -27,7 +26,7 @@ export async function POST(req: Request) {
             {
               parts: [
                 {
-                  text: `Ты — ИИ-ассистент новостного портала AQPARAT.COM, разработанного Torivideft. Отвечай на языке вопроса.\n\nВопрос: ${message}`
+                  text: `Ты — ИИ-ассистент новостного портала AQPARAT.COM, разработанного Torivideft. Отвечай кратко и по делу на языке вопроса.\n\nВопрос: ${message}`
                 }
               ]
             }
@@ -40,13 +39,13 @@ export async function POST(req: Request) {
     const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (!reply) {
-      console.error('Gemini Error:', JSON.stringify(data));
-      return NextResponse.json({ reply: 'Ошибка ответа от ИИ. Проверьте ключ.' });
+      console.error('Gemini API Full Response:', JSON.stringify(data));
+      return NextResponse.json({ reply: 'Ошибка ответа от Google API. Проверьте валидность ключа.' });
     }
 
     return NextResponse.json({ reply });
   } catch (error) {
-    console.error('Critical Error:', error);
-    return NextResponse.json({ error: 'Ошибка сервера' }, { status: 500 });
+    console.error('API Chat Error:', error);
+    return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 });
   }
 }
