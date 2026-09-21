@@ -13,7 +13,6 @@ async function callGemini(apiKey: string, model: string, message: string) {
           {
             parts: [
               {
-                // Исправлено: теперь ИИ знает, что автор ты один
                 text: `Ты — умный, вежливый и продвинутый ИИ-ассистент новостного портала AQPARAT.COM. Сайт разработан разработчиком Torivideft. Отвечай строго на языке пользователя (каз/рус/англ).\n\nВопрос: ${message}`
               }
             ]
@@ -22,7 +21,9 @@ async function callGemini(apiKey: string, model: string, message: string) {
       }),
     }
   );
-  return { response, data: await response.json() };
+  
+  const data = await response.json();
+  return { response, data };
 }
 
 export async function POST(req: Request) {
@@ -36,12 +37,14 @@ export async function POST(req: Request) {
     const apiKey = process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
+      console.error('GEMINI_API_KEY is missing in environment variables');
       return NextResponse.json({
         reply: 'Қате: `.env` файлында GEMINI_API_KEY орнатылмаған.'
       });
     }
 
-    const modelsToTry = ['gemini-3.6-flash', 'gemini-2.5-flash', 'gemini-1.5-flash'];
+    // Исправлено: используем реальные рабочие модели Google Gemini
+    const modelsToTry = ['gemini-1.5-flash', 'gemini-1.5-pro'];
     let reply = '';
 
     for (const model of modelsToTry) {
@@ -50,6 +53,8 @@ export async function POST(req: Request) {
       if (response.ok && data.candidates?.[0]?.content?.parts?.[0]?.text) {
         reply = data.candidates[0].content.parts[0].text;
         break;
+      } else {
+        console.warn(`Model ${model} failed:`, JSON.stringify(data));
       }
     }
 
